@@ -249,7 +249,7 @@ const SignInView = () => {
                                 </form>
                             </Form>
                         </div>
-                        <div className="bg-gradient-to-br from-emerald-600 via-emerald-700 to-emerald-900 relative hidden md:flex flex-col items-center justify-center p-12">
+                        <div className="bg-gradient-to-br from-sidebar-accent to-sidebar relative hidden md:flex flex-col items-center justify-center p-12">
                             <div className="flex flex-col items-center justify-center text-white space-y-6">
                                 <div className="p-4 bg-white/10 backdrop-blur-sm rounded-2xl">
                                     <Video className="h-16 w-16 text-white" />
