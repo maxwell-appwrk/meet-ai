@@ -73,7 +73,11 @@ const SignInView = () => {
         setIsLoading(true);
 
         console.log("Sign in attempt:", data);
-        authClient.signIn.email({ email: data.email, password: data.password }, {
+        authClient.signIn.email({
+            email: data.email,
+            password: data.password,
+            callbackURL: "/"
+        }, {
             onSuccess: () => {
                 console.log("Sign in successful");
                 setIsLoading(false);
@@ -86,25 +90,24 @@ const SignInView = () => {
         });
     };
 
-    const handleSocialSignIn = async (provider: "google" | "github") => {
+    const handleSocialSignIn = (provider: "google" | "github") => {
         setError(null);
         setSocialLoading(provider);
-
-        try {
-            // TODO: Implement social sign-in with better-auth
-            console.log(`${provider} sign-in attempt`);
-
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            // For demo purposes, show an error
-            setError(`${provider.charAt(0).toUpperCase() + provider.slice(1)} sign-in will be implemented with better-auth`);
-        } catch (err: Error | unknown) {
-            console.error(`${provider} sign-in error:`, err);
-            setError("An unexpected error occurred. Please try again.");
-        } finally {
-            setSocialLoading(null);
-        }
+        console.log(`Initiating social sign-in with ${provider}`);
+        authClient.signIn.social({
+            provider: provider,
+            callbackURL: "/"
+        }, {
+            onSuccess: () => {
+                console.log("Sign in successful");
+                setIsLoading(false);
+                router.push("/sign-in");
+            },
+            onError: ({ error }) => {
+                setIsLoading(false);
+                setError(error.message || "An unexpected error occurred. Please try again.");
+            },
+        });
     };
 
     return (

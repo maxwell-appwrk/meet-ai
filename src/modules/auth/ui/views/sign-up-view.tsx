@@ -89,10 +89,31 @@ const SignUpView = () => {
         setIsLoading(true);
 
         console.log("Sign up attempt:", data);
-        authClient.signUp.email({ 
-            email: data.email, 
+        authClient.signUp.email({
+            email: data.email,
             password: data.password,
-            name: data.name 
+            name: data.name,
+            callbackURL: "/"
+        }, {
+            onSuccess: () => {
+                console.log("Sign up successful");
+                setIsLoading(false);
+                router.push("/");
+            },
+            onError: ({ error }) => {
+                setIsLoading(false);
+                setError(error.message || "An unexpected error occurred. Please try again.");
+            },
+        });
+    };
+
+    const handleSocialSignUp = (provider: "google" | "github") => {
+        setError(null);
+        setSocialLoading(provider);
+        console.log(`Initiating social sign-up with ${provider}`);
+        authClient.signIn.social({
+            provider: provider,
+            callbackURL: "/"
         }, {
             onSuccess: () => {
                 console.log("Sign up successful");
@@ -104,27 +125,6 @@ const SignUpView = () => {
                 setError(error.message || "An unexpected error occurred. Please try again.");
             },
         });
-    };
-
-    const handleSocialSignUp = async (provider: "google" | "github") => {
-        setError(null);
-        setSocialLoading(provider);
-
-        try {
-            // TODO: Implement social sign-up with better-auth
-            console.log(`${provider} sign-up attempt`);
-
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            // For demo purposes, show an error
-            setError(`${provider.charAt(0).toUpperCase() + provider.slice(1)} sign-up will be implemented with better-auth`);
-        } catch (err: Error | unknown) {
-            console.error(`${provider} sign-up error:`, err);
-            setError("An unexpected error occurred. Please try again.");
-        } finally {
-            setSocialLoading(null);
-        }
     };
 
     return (
