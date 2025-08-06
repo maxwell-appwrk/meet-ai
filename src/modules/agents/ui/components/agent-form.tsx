@@ -1,6 +1,5 @@
 import { useTRPC } from "@/trpc/client";
 import { AgentGetOne } from "../../types";
-import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -26,7 +25,7 @@ const AgentForm = ({ onSuccess, onCancel, initalValues }: AgentFormProps) => {
 
   const createAgent = useMutation(trpc.agents.create.mutationOptions({
     onSuccess: async () => {
-      await queryClient.invalidateQueries(trpc.agents.getMany.queryOptions());
+      await queryClient.invalidateQueries(trpc.agents.getMany.queryOptions({}));
       if (initalValues?.id) {
         await queryClient.invalidateQueries(trpc.agents.getOne.queryOptions({ id: initalValues.id }));
       }
