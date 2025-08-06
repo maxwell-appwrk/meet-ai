@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Next.js 15 application with authentication, using TypeScript, Tailwind CSS v4, and Drizzle ORM with Neon PostgreSQL.
+Meet AI - An intelligent meeting assistant application built with Next.js 15, featuring AI-powered insights, automated transcriptions, and meeting management.
 
 ## Essential Commands
 
@@ -29,65 +29,124 @@ npm run db:studio       # Open Drizzle Studio for database management
 - **Next.js 15.3.2** with App Router
 - **React 19.0.0**
 - **TypeScript 5** with strict mode
-- **Tailwind CSS 4** (alpha)
+- **Tailwind CSS 4** (alpha) with CSS variables
 - **better-auth 1.2.8** for authentication
 - **Drizzle ORM** with Neon PostgreSQL
-- **shadcn/ui** components (new-york style)
+- **tRPC** with React Query for type-safe APIs
+- **shadcn/ui** components (new-york style, 45+ components)
 - **react-hook-form** + **zod** for forms
 
 ## Architecture
 
-### Directory Structure
-- `/src/app/` - Next.js App Router pages and API routes
-- `/src/components/ui/` - shadcn/ui components (45+ pre-built components)
-- `/src/db/` - Database schema and client
-- `/src/lib/` - Core utilities (auth configuration, utils)
-- `/src/hooks/` - Custom React hooks
-- `/drizzle/` - Database migrations output
+### Module-Based Structure
+```
+/src/modules/
+├── agents/          # Agent management
+│   ├── schema.ts    # Zod validation
+│   ├── types.ts     # TypeScript types
+│   ├── server/      # tRPC procedures
+│   └── ui/          # Components & views
+├── auth/            # Authentication
+├── dashboard/       # Dashboard layout
+└── home/           # Landing page
+```
 
 ### Key Files
-- `/src/lib/auth.ts` - better-auth configuration
+- `/src/lib/auth.ts` - better-auth server configuration
 - `/src/lib/auth-client.ts` - Client-side auth utilities
 - `/src/db/schema.ts` - Drizzle database schema
-- `/src/db/index.ts` - Database client initialization
+- `/src/trpc/routers/_app.ts` - tRPC router definition
+- `/src/app/api/auth/[...all]/route.ts` - Auth API route
+- `/src/app/api/trpc/[trpc]/route.ts` - tRPC API route
 
 ### Authentication Flow
-- Email/password authentication enabled via better-auth
-- Auth API routes at `/api/auth/[...all]`
-- Pre-built sign-in (`/sign-in`) and sign-up (`/sign-up`) pages
-- Session-based authentication with database storage
+- Email/password and social OAuth (Google, GitHub)
+- Database-backed sessions in PostgreSQL
+- Protected routes using `protectedProcedure` in tRPC
+- Client auth via `authClient` from better-auth/react
+- Server validation with `auth.api.getSession()`
 
 ### Database Schema
 - `user` - User accounts with email verification
 - `session` - Active user sessions
-- `account` - OAuth/social accounts (for future use)
+- `account` - OAuth/social accounts
 - `verification` - Email verification tokens
+- `agents` - User-created agents (uses nanoid for IDs)
 
 ## Environment Setup
 
 Create `.env` file with:
-```
+```env
 DATABASE_URL=your_neon_database_url
+
+# Optional for social auth
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
 ```
 
 ## Development Guidelines
 
 ### TypeScript
 - Path alias: `@/*` maps to `./src/*`
-- Always use proper types, avoid `any`
-- Strict mode is enabled
+- Strict mode enabled
+- Use proper types, avoid `any`
 
 ### Component Development
-- Use existing shadcn/ui components from `/src/components/ui/`
-- Components follow Radix UI patterns with composability
-- Server Components by default, use `"use client"` only when needed
+- Server Components by default
+- Use `"use client"` only when needed
+- Feature modules in `/src/modules/`
+- Shared UI in `/src/components/ui/`
+
+### API Development
+- Use tRPC procedures for type-safe APIs
+- Protected routes: extend `protectedProcedure`
+- Public routes: extend `publicProcedure`
+- Validation: Use zod schemas
 
 ### Database Operations
-- Use Drizzle ORM for all database queries
+- Use Drizzle ORM for queries
 - Schema changes: modify `/src/db/schema.ts` then run `npm run db:push`
-- Type-safe queries are automatically generated from schema
+- Type-safe queries automatically generated
 
 ### Styling
-- Use Tailwind CSS classes
-- CSS variables for theming (configured in globals.css)
-- Utility function `cn()` in `/src/lib/utils.ts` for conditional classes
+- Tailwind CSS classes
+- CSS variables for theming
+- Utility: `cn()` in `/src/lib/utils.ts`
+- Dark mode support via CSS variables
+
+### Form Handling
+- react-hook-form with zodResolver
+- Validation schemas in module's `schema.ts`
+- Use shadcn/ui form components
+
+## Project Patterns
+
+### Error Handling
+- `ErrorState` component for UI errors
+- `LoadingState` for loading states
+- react-error-boundary for error boundaries
+
+### Data Fetching
+- tRPC with React Query
+- Server-side: `trpc.serverClient`
+- Client-side: `trpc.useQuery/useMutation`
+
+### Authentication Check
+```typescript
+// Server-side
+const session = await auth.api.getSession({ headers: await headers() });
+if (!session) redirect("/sign-in");
+
+// Client-side
+const { data, isPending } = authClient.useSession();
+```
+
+### Module Creation Pattern
+1. Create folder in `/src/modules/[feature]/`
+2. Add `schema.ts` for validation
+3. Add `types.ts` for TypeScript types
+4. Add `server/procedures.ts` for tRPC
+5. Add `ui/components/` and `ui/views/`
+6. Register procedures in `/src/trpc/routers/_app.ts`
