@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { and, count, desc, eq, getTableColumns, ilike, sql } from 'drizzle-orm'
 import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, MIN_PAGE_SIZE } from '@/constants'
 import { TRPCError } from '@trpc/server'
+import { meetingInsertSchema, meetingUpdateSchema } from '../schema'
 
 export const meetingsRouter = createTRPCRouter({
     getOne: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
@@ -56,6 +57,43 @@ export const meetingsRouter = createTRPCRouter({
             totalItems: total.count,
             totalPages
         }
-    })
+    }),
+    create: protectedProcedure.input(meetingInsertSchema).mutation(async ({ input, ctx }) => {
+        const [createdMeeting] = await db.insert(meetings).values({
+            ...input,
+            userId: ctx.auth.user.id,
+        }).returning();
 
+        return createdMeeting;
+    }),
+    remove: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ input, ctx }) => {
+        const [removedMeeting] = await db.delete(meetings).where(and(
+            eq(meetings.id, input.id),
+            eq(meetings.userId, ctx.auth.user.id)
+        )).returning();
+
+        if (!removedMeeting) {
+            throw new TRPCError({
+                code: "NOT_FOUND",
+                message: "Meeting not found"
+            })
+        }
+
+        return removedMeeting;
+    }),
+    update: protectedProcedure.input(meetingUpdateSchema).mutation(async ({ input, ctx }) => {
+        const [updatedMeeting] = await db.update(meetings).set(input).where(and(
+            eq(meetings.id, input.id),
+            eq(meetings.userId, ctx.auth.user.id)
+        )).returning();
+
+        if (!updatedMeeting) {
+            throw new TRPCError({
+                code: "NOT_FOUND",
+                message: "Meeting not found"
+            })
+        }
+
+        return updatedMeeting;
+    })
 })
