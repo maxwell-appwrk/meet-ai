@@ -20,7 +20,6 @@ const CommandSelect = ({
     onSearch,
     value,
     placeholder,
-    isSearchable,
     className
 }: CommandSelectProps) => {
     const [open, setOpen] = useState(false);
