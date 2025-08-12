@@ -1,5 +1,6 @@
 import { db } from "@/db";
 import { agents, meetings } from "@/db/schema";
+import { inngest } from "@/inngest/client";
 import { streamVideo } from "@/lib/stream-video";
 import { CallEndedEvent, MessageNewEvent, CallTranscriptionReadyEvent, CallSessionParticipantLeftEvent, CallRecordingReadyEvent, CallSessionStartedEvent, CallSessionEndedEvent } from "@stream-io/node-sdk";
 import { and, eq, not } from "drizzle-orm";
@@ -81,7 +82,7 @@ export async function POST(req: NextRequest) {
         });
 
         realtimeClient.updateSession({
-            instructions: existingAgent.instructions
+            instructions: existingAgent.instructions,
         })
     } else if (eventType === "call.session_participant_left") {
         const event = payload as CallSessionParticipantLeftEvent;
@@ -126,6 +127,13 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Meeting not found" }, { status: 404 });
         }
 
+        await inngest.send({
+            name: "meetings/processing",
+            data: {
+                meetingId: updatedMeeting.id,
+                transcriptUrl: updatedMeeting.transcriptUrl,
+            }
+        })
 
     } else if (eventType === "call.recording_ready") {
         const event = payload as CallRecordingReadyEvent;
