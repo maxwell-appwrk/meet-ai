@@ -39,17 +39,30 @@ npm run db:studio       # Open Drizzle Studio for database management
 ## Architecture
 
 ### Module-Based Structure
+
+Each feature is organized as a self-contained module under `/src/modules/`:
+
 ```
-/src/modules/
-├── agents/          # Agent management
-│   ├── schema.ts    # Zod validation
-│   ├── types.ts     # TypeScript types
-│   ├── server/      # tRPC procedures
-│   └── ui/          # Components & views
-├── auth/            # Authentication
-├── dashboard/       # Dashboard layout
-└── home/           # Landing page
+/src/modules/[feature]/
+├── schema.ts           # Zod validation schemas
+├── types.ts            # TypeScript type definitions (uses tRPC inference)
+├── params.ts           # URL search params handling (optional)
+├── hooks/              # Custom React hooks (optional)
+│   └── use-[feature]-filters.ts
+├── server/             # Server-side logic
+│   └── procedures.ts   # tRPC procedures
+└── ui/                 # Client-side components
+    ├── components/     # Reusable components specific to the module
+    └── views/          # Page-level components
 ```
+
+**Current Modules:**
+- `agents/` - Agent management functionality
+- `meetings/` - Meeting management and operations
+- `auth/` - Authentication views
+- `call/` - Video call functionality
+- `dashboard/` - Dashboard layout components
+- `home/` - Landing page and dashboard
 
 ### Key Files
 - `/src/lib/auth.ts` - better-auth server configuration
@@ -143,10 +156,110 @@ if (!session) redirect("/sign-in");
 const { data, isPending } = authClient.useSession();
 ```
 
-### Module Creation Pattern
-1. Create folder in `/src/modules/[feature]/`
-2. Add `schema.ts` for validation
-3. Add `types.ts` for TypeScript types
-4. Add `server/procedures.ts` for tRPC
-5. Add `ui/components/` and `ui/views/`
-6. Register procedures in `/src/trpc/routers/_app.ts`
+### Creating a New Module
+
+When creating a new module, follow this pattern:
+
+1. Create the module directory structure:
+```
+/src/modules/[feature]/
+├── schema.ts           # Zod validation schemas
+├── types.ts            # TypeScript types using tRPC inference
+├── params.ts           # URL search params (if needed)
+├── hooks/              # Custom hooks (if needed)
+├── server/
+│   └── procedures.ts   # tRPC procedures
+└── ui/
+    ├── components/     # Module-specific components
+    └── views/          # Page-level view components
+```
+
+2. Create tRPC procedures in `server/procedures.ts`:
+```typescript
+import { createTRPCRouter, protectedProcedure } from '@/trpc/init'
+
+export const [feature]Router = createTRPCRouter({
+    getMany: protectedProcedure.query(async ({ ctx }) => {
+        // Implementation
+    }),
+})
+```
+
+3. Define types in `types.ts`:
+```typescript
+import { inferRouterOutputs } from "@trpc/server";
+import type { AppRouter } from "@/trpc/routers/_app";
+
+type RouterOutputs = inferRouterOutputs<AppRouter>;
+export type [Feature]Data = RouterOutputs["[feature]"]["getMany"];
+```
+
+4. Register in `/src/trpc/routers/_app.ts`:
+```typescript
+import { [feature]Router } from '@/modules/[feature]/server/procedures';
+
+export const appRouter = createTRPCRouter({
+    // ... existing routers
+    [feature]: [feature]Router
+});
+```
+
+### Component Organization
+
+**Shared Components** (`/src/components/`):
+- UI primitives from shadcn/ui
+- Generic application components (EmptyState, LoadingState, etc.)
+
+**Module Components** (`/src/modules/[feature]/ui/components/`):
+- Feature-specific components
+- Should be self-contained within the module
+- Can import shared components
+
+**View Components** (`/src/modules/[feature]/ui/views/`):
+- Page-level components that orchestrate module components
+- Handle data fetching and state management
+- Export loading and error states
+
+## UI/Design System
+
+### Color System
+- Uses oklch color space for better color manipulation
+- CSS variables defined in `/src/app/globals.css`
+- Dark mode support via CSS variables
+- Consistent color palette with semantic naming
+
+### Component Styling
+- Tailwind CSS 4 (alpha) with native CSS features
+- Component variants using CVA (class-variance-authority)
+- Consistent spacing scale and border radius
+- Responsive design with mobile-first approach
+
+### shadcn/ui Configuration
+- Style: New York (more opinionated styling)
+- Base color: Neutral
+- CSS variables: Enabled
+- Icons: Lucide React
+
+### Common Patterns
+- Loading states: Use `LoadingState` component
+- Empty states: Use `EmptyState` component
+- Error states: Use `ErrorState` component
+- Forms: react-hook-form with zod validation
+- Tables: DataTable with sorting, filtering, pagination
+
+## Third-Party Integrations
+
+### Stream Video/Chat
+- Video calls with recording and transcription
+- Post-meeting chat functionality
+- Configuration in `/src/lib/stream-video.ts` and `/src/lib/stream-chat.ts`
+
+### OpenAI
+- Realtime API for AI agents in calls
+- GPT-4 for meeting summaries
+- Chat responses with meeting context
+
+### Inngest
+- Background job processing
+- Meeting transcript processing
+- Summary generation
