@@ -1,16 +1,17 @@
 import { db } from '@/db'
-import { agents, meetings, user } from '@/db/schema'
-import { createTRPCRouter, protectedProcedure } from '@/trpc/init'
+import { agents, meetings, user, meetingGuests } from '@/db/schema'
+import { createTRPCRouter, protectedProcedure, publicProcedure } from '@/trpc/init'
 import { z } from 'zod'
 import { and, count, desc, eq, getTableColumns, ilike, inArray, sql } from 'drizzle-orm'
 import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, MIN_PAGE_SIZE } from '@/constants'
 import { TRPCError } from '@trpc/server'
-import { meetingInsertSchema, meetingUpdateSchema } from '../schema'
+import { meetingInsertSchema, meetingUpdateSchema, guestJoinSchema } from '../schema'
 import { MeetingStatus, StreamTranscriptItem } from '../types'
 import { streamVideo } from '@/lib/stream-video'
 import { generateAvatarUri } from '@/lib/avatar'
 import JSONL from 'jsonl-parse-stringify'
 import { streamChat } from '@/lib/stream-chat'
+import { nanoid } from 'nanoid'
 
 export const meetingsRouter = createTRPCRouter({
     generateChatToken: protectedProcedure.mutation(async ({ ctx }) => {
@@ -164,9 +165,13 @@ export const meetingsRouter = createTRPCRouter({
         }
     }),
     create: protectedProcedure.input(meetingInsertSchema).mutation(async ({ input, ctx }) => {
+        // Generate access token for public meetings
+        const accessToken = input.isPublic ? nanoid(32) : null;
+
         const [createdMeeting] = await db.insert(meetings).values({
             ...input,
             userId: ctx.auth.user.id,
+            accessToken,
         }).returning();
 
         const call = streamVideo.video.call("default", createdMeeting.id);
@@ -243,6 +248,179 @@ export const meetingsRouter = createTRPCRouter({
                 code: "NOT_FOUND",
                 message: "Meeting not found"
             })
+        }
+
+        return updatedMeeting;
+    }),
+
+    // Guest access procedures
+    validateGuestAccess: publicProcedure.input(z.object({
+        accessToken: z.string()
+    })).query(async ({ input }) => {
+        const [meeting] = await db.select({
+            id: meetings.id,
+            name: meetings.name,
+            status: meetings.status,
+            isPublic: meetings.isPublic,
+            expiresAt: meetings.expiresAt,
+            agent: agents,
+        })
+            .from(meetings)
+            .innerJoin(agents, eq(meetings.agentId, agents.id))
+            .where(eq(meetings.accessToken, input.accessToken));
+
+        if (!meeting) {
+            throw new TRPCError({
+                code: "NOT_FOUND",
+                message: "Invalid meeting link"
+            });
+        }
+
+        if (!meeting.isPublic) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "This meeting is not public"
+            });
+        }
+
+        if (meeting.expiresAt && new Date(meeting.expiresAt) < new Date()) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "This meeting link has expired"
+            });
+        }
+
+        if (meeting.status === MeetingStatus.Completed || meeting.status === MeetingStatus.Cancelled) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "This meeting has ended"
+            });
+        }
+
+        return {
+            meetingId: meeting.id,
+            meetingName: meeting.name,
+            agentName: meeting.agent.name,
+            status: meeting.status
+        };
+    }),
+
+    generateGuestToken: publicProcedure.input(guestJoinSchema).mutation(async ({ input }) => {
+        // First validate the meeting
+        const [meeting] = await db.select()
+            .from(meetings)
+            .where(eq(meetings.accessToken, input.accessToken));
+
+        if (!meeting || !meeting.isPublic) {
+            throw new TRPCError({
+                code: "NOT_FOUND",
+                message: "Invalid meeting link"
+            });
+        }
+
+        if (meeting.expiresAt && new Date(meeting.expiresAt) < new Date()) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "This meeting link has expired"
+            });
+        }
+
+        // Generate guest user ID
+        const guestId = `guest_${nanoid(10)}`;
+
+        // Create guest record
+        await db.insert(meetingGuests).values({
+            meetingId: meeting.id,
+            guestName: input.guestName,
+            guestId: guestId,
+        });
+
+        // Create Stream Video user for guest
+        await streamVideo.upsertUsers([{
+            id: guestId,
+            name: input.guestName,
+            role: "user",
+            image: generateAvatarUri({ seed: input.guestName, variant: "initials" }),
+        }]);
+
+        // Generate token with restricted access
+        const expirationTime = Math.floor(Date.now() / 1000) + 3600; // 1 hour
+        const issuedAt = Math.floor(Date.now() / 1000) - 60;
+        const token = streamVideo.generateUserToken({
+            user_id: guestId,
+            exp: expirationTime,
+            validity_in_seconds: issuedAt,
+            call_cids: [`default:${meeting.id}`] // Restrict to specific call
+        });
+
+        return {
+            token,
+            guestId,
+            meetingId: meeting.id,
+        };
+    }),
+
+    getShareableLink: protectedProcedure.input(z.object({
+        id: z.string()
+    })).query(async ({ input, ctx }) => {
+        const [meeting] = await db.select({
+            id: meetings.id,
+            isPublic: meetings.isPublic,
+            accessToken: meetings.accessToken,
+            expiresAt: meetings.expiresAt,
+        })
+            .from(meetings)
+            .where(and(
+                eq(meetings.id, input.id),
+                eq(meetings.userId, ctx.auth.user.id)
+            ));
+
+        if (!meeting) {
+            throw new TRPCError({
+                code: "NOT_FOUND",
+                message: "Meeting not found"
+            });
+        }
+
+        if (!meeting.isPublic || !meeting.accessToken) {
+            return null;
+        }
+
+        // Construct the shareable link
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+        const shareableLink = `${baseUrl}/join/${meeting.accessToken}`;
+
+        return {
+            link: shareableLink,
+            expiresAt: meeting.expiresAt,
+        };
+    }),
+
+    togglePublicAccess: protectedProcedure.input(z.object({
+        id: z.string(),
+        isPublic: z.boolean(),
+        expiresAt: z.date().optional(),
+    })).mutation(async ({ input, ctx }) => {
+        const accessToken = input.isPublic ? nanoid(32) : null;
+
+        const [updatedMeeting] = await db.update(meetings)
+            .set({
+                isPublic: input.isPublic,
+                accessToken,
+                expiresAt: input.expiresAt,
+                updatedAt: new Date(),
+            })
+            .where(and(
+                eq(meetings.id, input.id),
+                eq(meetings.userId, ctx.auth.user.id)
+            ))
+            .returning();
+
+        if (!updatedMeeting) {
+            throw new TRPCError({
+                code: "NOT_FOUND",
+                message: "Meeting not found"
+            });
         }
 
         return updatedMeeting;

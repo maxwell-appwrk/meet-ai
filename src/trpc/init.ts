@@ -22,6 +22,11 @@ const t = initTRPC.create({
 export const createTRPCRouter = t.router;
 export const createCallerFactory = t.createCallerFactory;
 export const baseProcedure = t.procedure;
+
+// Public procedure - no authentication required
+export const publicProcedure = baseProcedure;
+
+// Protected procedure - requires authentication
 export const protectedProcedure = baseProcedure.use(async ({ ctx, next }) => {
     const session = await auth.api.getSession({
         headers: await headers()

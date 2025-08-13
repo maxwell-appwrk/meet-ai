@@ -12,9 +12,10 @@ interface Props {
     userId: string;
     userName: string;
     userImage: string;
+    customToken?: string; // Optional custom token for guests
 }
 
-export const CallConnect = ({ meetingId, meetingName, userId, userName, userImage }: Props) => {
+export const CallConnect = ({ meetingId, meetingName, userId, userName, userImage, customToken }: Props) => {
     const trpc = useTRPC();
     const { mutateAsync: generateToken } = useMutation(trpc.meetings.generateToken.mutationOptions());
 
@@ -27,7 +28,9 @@ export const CallConnect = ({ meetingId, meetingName, userId, userName, userImag
                 name: userName,
                 image: userImage
             },
-            tokenProvider: generateToken
+            // Use custom token for guests, otherwise use token provider
+            token: customToken,
+            tokenProvider: customToken ? undefined : generateToken
         });
 
         setClient(_client);
@@ -36,7 +39,7 @@ export const CallConnect = ({ meetingId, meetingName, userId, userName, userImag
             _client.disconnectUser();
             setClient(undefined);
         }
-    }, [userId, userName, userImage, generateToken]);
+    }, [userId, userName, userImage, generateToken, customToken]);
 
     const [call, setCall] = useState<Call>();
 

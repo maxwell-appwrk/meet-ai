@@ -69,6 +69,18 @@ export const meetings = pgTable("meetings", {
     transcriptUrl: text('transcript_url'),
     recordingUrl: text('recording_url'),
     summary: text('summary'),
+    isPublic: boolean('is_public').notNull().default(false),
+    accessToken: text('access_token'),
+    expiresAt: timestamp('expires_at'),
     createdAt: timestamp('created_at').$defaultFn(() => /* @__PURE__ */ new Date()).notNull(),
     updatedAt: timestamp('updated_at').$defaultFn(() => /* @__PURE__ */ new Date()).notNull()
+})
+
+export const meetingGuests = pgTable("meeting_guests", {
+    id: text('id').primaryKey().$defaultFn(() => nanoid()),
+    meetingId: text('meeting_id').notNull().references(() => meetings.id, { onDelete: 'cascade' }),
+    guestName: text('guest_name').notNull(),
+    guestId: text('guest_id').notNull(), // Stream Video user ID for guest
+    joinedAt: timestamp('joined_at').$defaultFn(() => /* @__PURE__ */ new Date()).notNull(),
+    leftAt: timestamp('left_at'),
 })

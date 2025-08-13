@@ -3,15 +3,18 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Button } from '@/components/ui/button'
 import { PencilIcon, TrashIcon, MoreVerticalIcon } from 'lucide-react'
 import Link from "next/link";
+import { ShareMeetingDialog } from './share-meeting-dialog';
 
 interface Props {
     meetingId: string;
     meetingName: string;
+    isPublic: boolean;
+    expiresAt?: string | null;
     onEdit: () => void;
     onRemove: () => void;
 }
 
-const MeetingIdViewHeader = ({ meetingId, meetingName, onEdit, onRemove }: Props) => {
+const MeetingIdViewHeader = ({ meetingId, meetingName, isPublic, expiresAt, onEdit, onRemove }: Props) => {
     return (
         <div className="flex items-center justify-between">
             <Breadcrumb>
@@ -33,7 +36,14 @@ const MeetingIdViewHeader = ({ meetingId, meetingName, onEdit, onRemove }: Props
                     </BreadcrumbItem>
                 </BreadcrumbList>
             </Breadcrumb>
-            <DropdownMenu modal={false}>
+            <div className="flex items-center gap-2">
+                <ShareMeetingDialog 
+                    meetingId={meetingId}
+                    meetingName={meetingName}
+                    isPublic={isPublic}
+                    expiresAt={expiresAt}
+                />
+                <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
                     <Button variant="ghost">
                         <MoreVerticalIcon />
@@ -52,6 +62,7 @@ const MeetingIdViewHeader = ({ meetingId, meetingName, onEdit, onRemove }: Props
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
+            </div>
         </div>
     )
 }

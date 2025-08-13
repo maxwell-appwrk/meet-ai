@@ -59,7 +59,14 @@ const MeetingIdView = ({ meetingId }: Props) => {
             <RemoveConfirmation />
             <UpdateMeetingDialog open={updateMeetingDialogOpen} onOpenChange={setUpdateMeetingDialogOpen} initialValues={data} />
             <div className="flex-1 py-4 px-4 md:px-8 flex flex-col gap-y-4">
-                <MeetingIdViewHeader meetingId={meetingId} meetingName={data.name} onEdit={() => setUpdateMeetingDialogOpen(true)} onRemove={handleRemoveMeeting} />
+                <MeetingIdViewHeader 
+                    meetingId={meetingId} 
+                    meetingName={data.name} 
+                    isPublic={data.isPublic}
+                    expiresAt={data.expiresAt}
+                    onEdit={() => setUpdateMeetingDialogOpen(true)} 
+                    onRemove={handleRemoveMeeting} 
+                />
                 {isCancelled && <CancelledState />}
                 {isActive && <ActiveState meetingId={meetingId} />}
                 {isUpcoming && <UpcomingState meetingId={meetingId}/>}

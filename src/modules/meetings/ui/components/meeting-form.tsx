@@ -9,6 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useState } from "react";
 import CommandSelect from "@/components/command-select";
@@ -60,6 +61,8 @@ const MeetingForm = ({ onSuccess, onCancel, initalValues }: MeetingFormProps) =>
     defaultValues: {
       name: initalValues?.name ?? "",
       agentId: initalValues?.agentId ?? "",
+      isPublic: initalValues?.isPublic ?? false,
+      expiresAt: initalValues?.expiresAt ? new Date(initalValues.expiresAt) : undefined,
     },
   });
 
@@ -76,7 +79,7 @@ const MeetingForm = ({ onSuccess, onCancel, initalValues }: MeetingFormProps) =>
   }
   return (
     <>
-    <NewAgentDialog open={openNewAgentDialog} onOpenChange={setOpenNewAgentDialog} />
+      <NewAgentDialog open={openNewAgentDialog} onOpenChange={setOpenNewAgentDialog} />
       <Form {...form}>
         <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
           <FormField name="name" control={form.control} render={({ field }) => (
@@ -119,6 +122,30 @@ const MeetingForm = ({ onSuccess, onCancel, initalValues }: MeetingFormProps) =>
               <FormMessage />
             </FormItem>
           )} />
+          {!isEdit && (
+            <FormField 
+              control={form.control} 
+              name="isPublic" 
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      Make this meeting public
+                    </FormLabel>
+                    <FormDescription className="text-sm text-muted-foreground">
+                      Allow guests to join this meeting with a shareable link
+                    </FormDescription>
+                  </div>
+                </FormItem>
+              )} 
+            />
+          )}
           <div className="flex justify-end gap-x-2">
             {onCancel && (
               <Button variant="ghost" disabled={isPending} type="button" onClick={() => onCancel()}>
