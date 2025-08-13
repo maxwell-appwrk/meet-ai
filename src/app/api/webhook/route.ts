@@ -93,8 +93,28 @@ export async function POST(req: NextRequest) {
 
         realtimeClient.updateSession({
             instructions: existingAgent.instructions,
-            voice: "ash"
+            voice: "ash",
         })
+
+        realtimeClient.addTool(
+            {
+                name: "end_meeting",
+                description: "Ends the current meeting session",
+                parameters: {
+                    type: "object",
+                    properties: {
+                    },
+                    required: [],
+                },
+            },
+            async () => {
+                call.end();
+                return {
+                    success: true,
+                    message: "Meeting ended successfully"
+                }
+            },
+        );
     } else if (eventType === "call.session_participant_left") {
         const event = payload as CallSessionParticipantLeftEvent;
         const meetingId = event.call_cid.split(":")[1];

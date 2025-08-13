@@ -24,6 +24,10 @@ const CallUI = ({ meetingName }: Props) => {
         setShow("ended");
     }
 
+    call?.on("call.ended", () => {
+        setShow("ended");
+    });
+
     return (
         <StreamTheme className="h-full">
             {show === "lobby" && <CallLobby onJoin={handleJoin} />}
