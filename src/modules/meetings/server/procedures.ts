@@ -60,7 +60,18 @@ export const meetingsRouter = createTRPCRouter({
             image: generateAvatarUri({ seed: agent.name, variant: "botttsNeutral" })
         })));
 
-        const speakers = [...userSpeakers, ...agentSpeakers];
+        const guestSpeakers = await db.select().from(meetingGuests).where(
+            and(
+                eq(meetingGuests.meetingId, input.id),
+                inArray(meetingGuests.guestId, speakerIds)
+            )
+        ).then((guests) => guests.map((guest) => ({
+            id: guest.guestId,
+            name: guest.guestName,
+            image: generateAvatarUri({ seed: guest.guestName, variant: "initials" })
+        })));
+
+        const speakers = [...userSpeakers, ...agentSpeakers, ...guestSpeakers];
 
         const transciptWithSpeakers = transcipt.map((item) => {
             const speaker = speakers.find((speaker) => speaker.id === item.speaker_id);

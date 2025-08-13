@@ -1,8 +1,8 @@
 import { db } from "@/db";
-import { agents, meetings, user } from "@/db/schema";
+import { agents, meetings, user, meetingGuests } from "@/db/schema";
 import { inngest } from "@/inngest/client";
 import { StreamTranscriptItem } from "@/modules/meetings/types";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import JSONL from "jsonl-parse-stringify";
 import { createAgent, openai, TextMessage } from "@inngest/agent-kit";
 
@@ -55,7 +55,18 @@ export const meetingsProcessing = inngest.createFunction(
         ...agent
       })))
 
-      const speakers = [...userSpeakers, ...agentSpeakers];
+      const guestSpeakers = await db.select().from(meetingGuests).where(
+        and(
+          eq(meetingGuests.meetingId, event.data.meetingId),
+          inArray(meetingGuests.guestId, speakerIds)
+        )
+      ).then((guests) => guests.map((guest) => ({
+        id: guest.guestId,
+        name: guest.guestName
+      })));
+      
+
+      const speakers = [...userSpeakers, ...agentSpeakers, ...guestSpeakers];
 
       return transcipt.map((item) => {
         const speaker = speakers.find((speaker) => speaker.id === item.speaker_id);
