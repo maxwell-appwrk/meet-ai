@@ -14,7 +14,7 @@ interface Props {
     userName: string
 }
 
-const ChatUI = ({ meetingId, meetingName, userId, userImage, userName }: Props) => {
+const ChatUI = ({ meetingId, userId, userImage, userName }: Props) => {
     const trpc = useTRPC();
     const { mutateAsync: generateChatToken } = useMutation(trpc.meetings.generateChatToken.mutationOptions())
 

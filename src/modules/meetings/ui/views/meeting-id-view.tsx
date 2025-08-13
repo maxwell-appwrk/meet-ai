@@ -62,7 +62,7 @@ const MeetingIdView = ({ meetingId }: Props) => {
                 <MeetingIdViewHeader meetingId={meetingId} meetingName={data.name} onEdit={() => setUpdateMeetingDialogOpen(true)} onRemove={handleRemoveMeeting} />
                 {isCancelled && <CancelledState />}
                 {isActive && <ActiveState meetingId={meetingId} />}
-                {isUpcoming && <UpcomingState meetingId={meetingId} onCancelMeeting={() => {}} isCancelling={false} />}
+                {isUpcoming && <UpcomingState meetingId={meetingId}/>}
                 {isCompleted && <CompletedState data={data} />}
                 {isProcessing && <ProcessingState />}
             </div>

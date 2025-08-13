@@ -5,7 +5,7 @@ import { generateAvatarUri } from "@/lib/avatar";
 import { streamChat } from "@/lib/stream-chat";
 import { streamVideo } from "@/lib/stream-video";
 import { MeetingStatus } from "@/modules/meetings/types";
-import { CallEndedEvent, MessageNewEvent, CallTranscriptionReadyEvent, CallSessionParticipantLeftEvent, CallRecordingReadyEvent, CallSessionStartedEvent, CallSessionEndedEvent } from "@stream-io/node-sdk";
+import { MessageNewEvent, CallTranscriptionReadyEvent, CallSessionParticipantLeftEvent, CallRecordingReadyEvent, CallSessionStartedEvent, CallSessionEndedEvent } from "@stream-io/node-sdk";
 import { and, eq, not } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
     try {
         payload = JSON.parse(body) as Record<string, unknown>;
     } catch (error) {
+        console.error("Failed to parse JSON payload:", error);
         return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
 
@@ -189,10 +190,6 @@ export async function POST(req: NextRequest) {
                 Below is a summary of the meeting, generated from the transcript:
                 
                 ${existingMeeting.summary}
-                
-                The following are your original instructions from the live meeting assistant. Please continue to follow these behavioral guidelines as you assist the user:
-                
-                ${existingAgent.instructions}
                 
                 The user may ask questions about the meeting, request clarifications, or ask for follow-up actions.
                 Always base your responses on the meeting summary above.

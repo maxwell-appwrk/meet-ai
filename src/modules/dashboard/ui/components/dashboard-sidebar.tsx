@@ -13,7 +13,7 @@ import {
     SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
-import { BotIcon, StarIcon, Video, VideoIcon } from "lucide-react";
+import { BotIcon, Video, VideoIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import DashboardUserButton from "./dashboard-user-button";
@@ -28,11 +28,6 @@ const firstSection = [{
     href: "/agents",
 }]
 
-const secondSection = [{
-    icon: StarIcon,
-    label: "Upgrade",
-    href: "/upgrade",
-}]
 
 const DashboardSidebar = () => {
     const pathname = usePathname();
@@ -52,22 +47,6 @@ const DashboardSidebar = () => {
                     <SidebarGroupContent>
                         <SidebarMenu>
                             {firstSection.map((item) => (
-                                <SidebarMenuItem key={item.href}>
-                                    <SidebarMenuButton asChild className={cn("h-10 hover:bg-linear-to-r/oklch border border-transparent hover:border-[#5D6B68]/10 from-sidebar-accent from-5% via-30% via-sidebar/50 to-sidebar/50", pathname === item.href && "bg-linear-to-r/oklch border-[#5D6B68]/10")}>
-                                        <Link href={item.href} >
-                                            <item.icon className="size-5" />
-                                            <span className="text-sm font-medium tracking-tight">{item.label}</span>
-                                        </Link>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                            ))}
-                        </SidebarMenu>
-                    </SidebarGroupContent>
-                </SidebarGroup>
-                <SidebarGroup>
-                    <SidebarGroupContent>
-                        <SidebarMenu>
-                            {secondSection.map((item) => (
                                 <SidebarMenuItem key={item.href}>
                                     <SidebarMenuButton asChild className={cn("h-10 hover:bg-linear-to-r/oklch border border-transparent hover:border-[#5D6B68]/10 from-sidebar-accent from-5% via-30% via-sidebar/50 to-sidebar/50", pathname === item.href && "bg-linear-to-r/oklch border-[#5D6B68]/10")}>
                                         <Link href={item.href} >
